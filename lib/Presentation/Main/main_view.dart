@@ -65,7 +65,7 @@ class _MainViewState extends State<MainView> {
             // Nếu là staff và ấn vào tab quản lý (index 4), chuyển thẳng vào OrderConfirmPage
             if (isStaff && value == 4) {
               final token = authProvider.token!;
-              final baseUrl = 'http://10.0.2.2:3000';
+              final baseUrl = 'http://192.168.10.1:3000';
               Navigator.push(
                 context,
                 MaterialPageRoute(

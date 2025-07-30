@@ -43,9 +43,12 @@ router.post('/add', authenticateToken, async (req, res) => {
     // Kiểm tra món đã có trong giỏ chưa
     let [items] = await db.query('SELECT * FROM cart_items WHERE cart_id = ? AND food_id = ?', [cartId, food_id]);
     if (items.length === 0) {
+      // Nếu chưa có, thêm mới
       await db.query('INSERT INTO cart_items (cart_id, food_id, quantity) VALUES (?, ?, ?)', [cartId, food_id, quantity]);
     } else {
-      await db.query('UPDATE cart_items SET quantity = ? WHERE id = ?', [quantity, items[0].id]);
+      // Nếu đã có, cộng dồn số lượng
+      const newQuantity = items[0].quantity + quantity;
+      await db.query('UPDATE cart_items SET quantity = ? WHERE id = ?', [newQuantity, items[0].id]);
     }
     res.json({ success: true });
   } catch (err) {

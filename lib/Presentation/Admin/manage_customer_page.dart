@@ -18,7 +18,7 @@ class ManageCustomerPageState extends State<ManageCustomerPage> {
   String? error;
 
   String get token => Provider.of<AuthProvider>(context, listen: false).token ?? '';
-  final String apiBase = 'http://10.0.2.2:3000/api/user';
+  final String apiBase = 'http://192.168.10.1:3000/api/user';
 
   @override
   void initState() {

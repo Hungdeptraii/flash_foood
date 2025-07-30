@@ -41,7 +41,7 @@ class AuthProvider extends ChangeNotifier {
         if (fcmToken != null && _token != null) {
           try {
             final response = await http.post(
-              Uri.parse('http://10.0.2.2:3000/api/user/save-fcm-token'),
+              Uri.parse('http://192.168.10.1:3000/api/user/save-fcm-token'),
               headers: {
                 'Authorization': 'Bearer $_token',
                 'Content-Type': 'application/json',
@@ -92,7 +92,7 @@ class AuthProvider extends ChangeNotifier {
       // 5. Gửi token lên backend
       print('Đang gửi token lên backend...');
       final response = await http.post(
-        Uri.parse('http://10.0.2.2:3000/api/auth/google-login'),
+        Uri.parse('http://192.168.10.1:3000/api/auth/google-login'),
         headers: {
           'Content-Type': 'application/json',
         },

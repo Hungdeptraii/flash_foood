@@ -19,7 +19,7 @@ class ManageStaffPageState extends State<ManageStaffPage> {
   String? error;
 
   String get token => Provider.of<AuthProvider>(context, listen: false).token ?? '';
-  final String apiBase = 'http://10.0.2.2:3000/api/user'; // Đổi lại IP nếu chạy thật
+  final String apiBase = 'http://192.168.10.1:3000/api/user'; // Đổi lại IP nếu chạy thật
 
   @override
   void initState() {

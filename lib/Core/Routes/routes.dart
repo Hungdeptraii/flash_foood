@@ -15,6 +15,7 @@ import 'package:flash_food/Presentation/Notifications/Views/notification_view.da
 import 'package:flash_food/Presentation/Profil/extracard_view.dart';
 import 'package:flash_food/Presentation/Profil/personal_data_view.dart';
 import 'package:flash_food/Presentation/Profil/settings_view.dart';
+import 'package:flash_food/Presentation/Base/chat_demo.dart';
 import 'package:flutter/material.dart';
 import 'package:flash_food/Presentation/Base/models/food_model.dart';
 
@@ -59,6 +60,8 @@ class Routes{
         return MaterialPageRoute(builder: (context) => const SettingsView());
       case RoutesName.extraCard:
         return MaterialPageRoute(builder: (context) => const ExtraCardView());
+      case RoutesName.chatDemo:
+        return MaterialPageRoute(builder: (context) => const ChatDemo());
       default:
         return MaterialPageRoute(builder: (context) => const Scaffold(
           body: Text("No routes found"),

@@ -26,4 +26,13 @@ const requireAdmin = (req, res, next) => {
   }
 };
 
-module.exports = { authenticateToken, requireAdmin }; 
+// Middleware kiểm tra quyền staff
+const requireStaff = (req, res, next) => {
+  if (req.user && req.user.role === 'staff') {
+    next();
+  } else {
+    res.status(403).json({ error: 'Chỉ staff mới có quyền truy cập.' });
+  }
+};
+
+module.exports = { authenticateToken, requireAdmin, requireStaff }; 

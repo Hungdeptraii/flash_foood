@@ -43,3 +43,4 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 "flash_food_backend/firebase-service-account.json" 
+"flash_food_backend/.env" 

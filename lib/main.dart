@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'Presentation/Auth/provider/auth_provider.dart';
 import 'Presentation/Auth/views/login_view.dart';
 import 'Presentation/Main/main_view.dart';
+import 'Presentation/Admin/admin_view.dart';
 import 'Presentation/Base/provider/food_provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'Presentation/Base/provider/cart_provider.dart';
@@ -105,13 +106,15 @@ class App extends StatelessWidget {
       builder: (context, authProvider, cartProvider, _) {
         if (authProvider.isLoggedIn && (cartProvider.cartService == null)) {
           final token = authProvider.token!;
-          final baseUrl = 'http://10.0.2.2:3000'; // Đổi thành backend của bạn
+          final baseUrl = 'http://192.168.10.1:3000'; // Đổi thành backend của bạn
           cartProvider.setCartService(CartService(baseUrl: baseUrl, token: token));
           cartProvider.fetchCart();
         }
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          home: authProvider.isLoggedIn ? const MainView() : const LoginView(),
+          home: authProvider.isLoggedIn 
+            ? ((authProvider.role == 'admin' || authProvider.role == 'staff') ? const AdminView() : const MainView())
+            : const LoginView(),
           onGenerateRoute: Routes.onGenerateRoute,
           theme: ThemeData(canvasColor: Colors.white),
           localizationsDelegates: const [

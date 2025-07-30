@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/food_model.dart';
 
 class FoodService {
-  static const String baseUrl = 'http://10.0.2.2:3000/api/foods'; // Sửa lại nếu backend chạy port khác
+  static const String baseUrl = 'http://192.168.10.1:3000/api/foods'; // Sửa lại nếu backend chạy port khác
 
   static Future<List<FoodModel>> getFoods() async {
     final response = await http.get(Uri.parse(baseUrl));

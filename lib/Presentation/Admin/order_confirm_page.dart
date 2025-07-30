@@ -41,7 +41,7 @@ class _OrderConfirmPageState extends State<OrderConfirmPage> {
   Future<void> _cancelOrder(int orderId, String reason) async {
     try {
       final token = Provider.of<AuthProvider>(context, listen: false).token!;
-      final baseUrl = 'http://10.0.2.2:3000';
+      final baseUrl = 'http://192.168.10.1:3000';
       final res = await http.post(
         Uri.parse('$baseUrl/api/orders/$orderId/cancel'),
         headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
@@ -72,15 +72,20 @@ class _OrderConfirmPageState extends State<OrderConfirmPage> {
   }
 
   String getPaymentMethodText(String? method) {
-    if (method?.toLowerCase() == 'qr') return 'Mã QR';
-    if (method?.toLowerCase() == 'cod') return 'Thanh toán khi nhận hàng';
+    if (method?.toLowerCase() == 'qr') return 'Đã thanh toán chuyển khoản (QR)';
+    if (method?.toLowerCase() == 'cod') return 'Thanh toán khi nhận hàng (COD)';
     return '';
   }
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final isAdmin = authProvider.role == 'admin';
+    
     return Scaffold(
-      appBar: AppBar(title: Text('Xác nhận đơn hàng')),
+      appBar: AppBar(
+        title: Text(isAdmin ? 'Xem đơn hàng' : 'Xác nhận đơn hàng'),
+      ),
       body: FutureBuilder<List<OrderModel>>(
         future: _ordersFuture,
         builder: (context, snapshot) {
@@ -92,7 +97,7 @@ class _OrderConfirmPageState extends State<OrderConfirmPage> {
           }
           final orders = snapshot.data ?? [];
           if (orders.isEmpty) {
-            return Center(child: Text('Không có đơn hàng chờ xác nhận'));
+            return Center(child: Text(isAdmin ? 'Không có đơn hàng nào' : 'Không có đơn hàng chờ xác nhận'));
           }
           return ListView.builder(
             itemCount: orders.length,
@@ -106,6 +111,23 @@ class _OrderConfirmPageState extends State<OrderConfirmPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Trạng thái: ${order.status}'),
+                      Row(
+                        children: [
+                          Icon(
+                            order.paymentMethod == 'qr' ? Icons.payment : Icons.money_off,
+                            color: order.paymentMethod == 'qr' ? Colors.green : Colors.orange,
+                            size: 16,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            getPaymentMethodText(order.paymentMethod),
+                            style: TextStyles.bodySmallRegular.copyWith(
+                              color: order.paymentMethod == 'qr' ? Colors.green.shade700 : Colors.orange.shade700,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
                       Row(
                         children: [
                           Text('Ngày đặt: ', style: TextStyles.bodySmallRegular.copyWith(color: Pallete.neutral60)),
@@ -230,68 +252,128 @@ class _OrderConfirmPageState extends State<OrderConfirmPage> {
                                         style: TextStyles.bodyLargeRegular.copyWith(color: Pallete.neutral100, fontSize: 18)),
                                     ],
                                   ),
-                                  SizedBox(height: 20),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: ElevatedButton(
-                                          onPressed: () {
-                                            String cancelReason = '';
-                                            showDialog(
-                                              context: context,
-                                              builder: (context) => AlertDialog(
-                                                title: Text('Lý do từ chối đơn hàng'),
-                                                content: TextField(
-                                                  autofocus: true,
-                                                  onChanged: (value) => cancelReason = value,
-                                                  decoration: InputDecoration(hintText: 'Nhập lý do từ chối...'),
-                                                  maxLines: 3,
-                                                ),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () => Navigator.pop(context),
-                                                    child: Text('Hủy'),
-                                                  ),
-                                                  ElevatedButton(
-                                                    onPressed: () async {
-                                                      if (cancelReason.trim().isEmpty) return;
-                                                      Navigator.pop(context);
-                                                      Navigator.pop(context);
-                                                      await _cancelOrder(order.id, cancelReason);
-                                                    },
-                                                    child: Text('Xác nhận'),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                          },
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Pallete.pureError,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                            padding: EdgeInsets.symmetric(vertical: 10),
-                                          ),
-                                          child: Text('Từ chối', style: TextStyles.bodyLargeSemiBold.copyWith(color: Colors.white, fontSize: 15)),
-                                        ),
+                                  SizedBox(height: 8),
+                                  Container(
+                                    padding: EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: order.paymentMethod == 'qr' ? Colors.green.shade50 : Colors.orange.shade50,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: order.paymentMethod == 'qr' ? Colors.green.shade200 : Colors.orange.shade200,
                                       ),
-                                      if (order.status == 'pending') ...[
-                                        SizedBox(width: 16),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          order.paymentMethod == 'qr' ? Icons.payment : Icons.money_off,
+                                          color: order.paymentMethod == 'qr' ? Colors.green : Colors.orange,
+                                          size: 20,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                order.paymentMethod == 'qr' ? 'Đã thanh toán chuyển khoản' : 'Thanh toán khi nhận hàng',
+                                                style: TextStyles.bodyLargeSemiBold.copyWith(
+                                                  color: order.paymentMethod == 'qr' ? Colors.green.shade700 : Colors.orange.shade700,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                              if (order.paymentMethod == 'qr')
+                                                Text(
+                                                  'Khách hàng đã thanh toán qua QR code',
+                                                  style: TextStyles.bodyMediumRegular.copyWith(
+                                                    color: Colors.green.shade600,
+                                                    fontSize: 14,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(height: 20),
+                                  // Chỉ hiển thị nút xác nhận/từ chối cho staff, không cho admin
+                                  if (Provider.of<AuthProvider>(context, listen: false).role == 'staff') ...[
+                                    Row(
+                                      children: [
                                         Expanded(
                                           child: ElevatedButton(
-                                            onPressed: () async {
-                                              Navigator.pop(context);
-                                              await _confirmOrder(order.id);
+                                            onPressed: () {
+                                              String cancelReason = '';
+                                              showDialog(
+                                                context: context,
+                                                builder: (context) => AlertDialog(
+                                                  title: Text('Lý do từ chối đơn hàng'),
+                                                  content: TextField(
+                                                    autofocus: true,
+                                                    onChanged: (value) => cancelReason = value,
+                                                    decoration: InputDecoration(hintText: 'Nhập lý do từ chối...'),
+                                                    maxLines: 3,
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () => Navigator.pop(context),
+                                                      child: Text('Hủy'),
+                                                    ),
+                                                    ElevatedButton(
+                                                      onPressed: () async {
+                                                        if (cancelReason.trim().isEmpty) return;
+                                                        Navigator.pop(context);
+                                                        Navigator.pop(context);
+                                                        await _cancelOrder(order.id, cancelReason);
+                                                      },
+                                                      child: Text('Xác nhận'),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
                                             },
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: Pallete.orangePrimary,
+                                              backgroundColor: Pallete.pureError,
                                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                                               padding: EdgeInsets.symmetric(vertical: 10),
                                             ),
-                                            child: Text('Xác nhận', style: TextStyles.bodyLargeSemiBold.copyWith(color: Colors.white, fontSize: 15)),
+                                            child: Text('Từ chối', style: TextStyles.bodyLargeSemiBold.copyWith(color: Colors.white, fontSize: 15)),
                                           ),
                                         ),
-                                      ]
-                                    ],
-                                  ),
+                                        if (order.status == 'pending') ...[
+                                          SizedBox(width: 16),
+                                          Expanded(
+                                            child: ElevatedButton(
+                                              onPressed: () async {
+                                                Navigator.pop(context);
+                                                await _confirmOrder(order.id);
+                                              },
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: Pallete.orangePrimary,
+                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                                padding: EdgeInsets.symmetric(vertical: 10),
+                                              ),
+                                              child: Text('Xác nhận', style: TextStyles.bodyLargeSemiBold.copyWith(color: Colors.white, fontSize: 15)),
+                                            ),
+                                          ),
+                                        ]
+                                      ],
+                                    ),
+                                  ] else if (Provider.of<AuthProvider>(context, listen: false).role == 'admin') ...[
+                                    // Admin chỉ có nút đóng
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Pallete.orangePrimary,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                          padding: EdgeInsets.symmetric(vertical: 10),
+                                        ),
+                                        child: Text('Đóng', style: TextStyles.bodyLargeSemiBold.copyWith(color: Colors.white, fontSize: 15)),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),

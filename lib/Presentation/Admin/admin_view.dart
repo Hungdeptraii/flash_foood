@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../Base/models/food_model.dart';
 import '../Base/provider/food_provider.dart';
 import 'food_manager_page.dart';
@@ -9,6 +10,7 @@ import '../Auth/provider/auth_provider.dart';
 import 'manage_staff_page.dart';
 import 'manage_accounts_page.dart';
 import 'manage_revenue_page.dart';
+import 'manage_customer_page.dart';
 
 class AdminView extends StatefulWidget {
   const AdminView({Key? key}) : super(key: key);
@@ -148,18 +150,40 @@ class _AdminViewState extends State<AdminView> {
       opacity: enabled ? 1 : 0.5,
       child: InkWell(
         onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         child: Container(
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
+              ),
+            ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 48, color: color),
-              SizedBox(height: 8),
-              Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+              Container(
+                padding: const EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 40, color: color),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                  fontSize: 16,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),
@@ -167,10 +191,11 @@ class _AdminViewState extends State<AdminView> {
     );
   }
 
-  @override
+    @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final isAdmin = authProvider.role == 'admin';
+    final isStaff = authProvider.role == 'staff';
 
     if (authProvider.role == null) {
       // Nếu role chưa load xong, hiển thị loading
@@ -180,129 +205,232 @@ class _AdminViewState extends State<AdminView> {
     }
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Quản lý'),
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Builder(
-          builder: (context) {
-            if (authProvider.role == 'staff') {
-              // Chỉ hiển thị đúng 1 ô Quản lý đơn hàng chiếm gần hết màn hình
-              return Center(
-                child: Container(
-                  width: double.infinity,
-                  height: double.infinity,
-                  padding: const EdgeInsets.all(0),
-                  child: _buildMenuItem(
-                    Icons.receipt_long,
-                    'Quản lý đơn hàng',
-                    Colors.green,
-                    onTap: () {
-                      final token = authProvider.token!;
-                      final baseUrl = 'http://10.0.2.2:3000';
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => OrderConfirmPage(
-                            orderService: OrderService(baseUrl: baseUrl, token: token),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFFF6B35), Color(0xFFFF8E53)],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header với thông tin admin/staff
+              Container(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 25,
+                      backgroundColor: Colors.white,
+                      child: Icon(
+                        isAdmin ? Icons.admin_panel_settings : Icons.work,
+                        size: 30,
+                        color: Colors.orange,
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isAdmin ? 'Quản lý hệ thống' : 'Quản lý đơn hàng',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                          Text(
+                            isAdmin ? 'Chào mừng Admin' : 'Chào mừng Staff',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white.withOpacity(0.9),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () async {
+                        // Đăng xuất
+                        final prefs = await SharedPreferences.getInstance();
+                        await prefs.clear();
+                        authProvider.logout();
+                      },
+                      icon: Icon(Icons.logout, color: Colors.white, size: 28),
+                    ),
+                  ],
                 ),
-              );
-            }
-            return Column(
-              children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _buildMenuItem(
-                          Icons.fastfood,
-                          'Quản lý món ăn',
-                          Colors.orange,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const FoodManagerPage()),
-                            );
-                          },
-                        ),
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: _buildMenuItem(
-                          Icons.receipt_long,
-                          'Quản lý đơn hàng',
-                          Colors.green,
-                          onTap: () {
-                            final token = authProvider.token!;
-                            final baseUrl = 'http://10.0.2.2:3000';
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => OrderConfirmPage(
-                                  orderService: OrderService(baseUrl: baseUrl, token: token),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
+              ),
+              
+              // Nội dung khác nhau cho admin và staff
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.all(20),
+                  child: isAdmin 
+                    ? _buildAdminGrid() 
+                    : _buildStaffView(),
                 ),
-                SizedBox(height: 16),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _buildMenuItem(
-                          Icons.people,
-                          'Quản lý tài khoản',
-                          isAdmin ? Colors.blue : Colors.grey,
-                          enabled: isAdmin,
-                          onTap: isAdmin
-                              ? () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => ManageAccountsPage(),
-                                    ),
-                                  );
-                                }
-                              : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAdminGrid() {
+    return Column(
+      children: [
+        // Hàng đầu tiên
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: _buildMenuItem(
+                  Icons.fastfood,
+                  'Quản lý món ăn',
+                  Colors.orange,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const FoodManagerPage()),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: _buildMenuItem(
+                  Icons.receipt_long,
+                  'Quản lý đơn hàng',
+                  Colors.green,
+                  onTap: () {
+                    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                    final token = authProvider.token!;
+                    final baseUrl = 'http://192.168.10.1:3000';
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => OrderConfirmPage(
+                          orderService: OrderService(baseUrl: baseUrl, token: token),
                         ),
                       ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: isAdmin
-                            ? _buildMenuItem(
-                                Icons.bar_chart,
-                                'Quản lý doanh thu',
-                                Colors.purple,
-                                enabled: true,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const ManageRevenuePage(),
-                                    ),
-                                  );
-                                },
-                              )
-                            : const SizedBox(),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
-              ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        // Hàng thứ hai
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: _buildMenuItem(
+                  Icons.people,
+                  'Quản lý tài khoản',
+                  Colors.blue,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ManageAccountsPage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: _buildMenuItem(
+                  Icons.bar_chart,
+                  'Quản lý doanh thu',
+                  Colors.purple,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ManageRevenuePage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStaffView() {
+    return Center(
+      child: Container(
+        width: double.infinity,
+        height: double.infinity,
+        child: InkWell(
+          onTap: () {
+            final authProvider = Provider.of<AuthProvider>(context, listen: false);
+            final token = authProvider.token!;
+            final baseUrl = 'http://192.168.10.1:3000';
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => OrderConfirmPage(
+                  orderService: OrderService(baseUrl: baseUrl, token: token),
+                ),
+              ),
             );
           },
+          borderRadius: BorderRadius.circular(30),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(30),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(40),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.receipt_long,
+                    size: 80,
+                    color: Colors.green,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                Text(
+                  'Quản lý đơn hàng',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                    fontSize: 28,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 15),
+                
+              ],
+            ),
+          ),
         ),
       ),
     );

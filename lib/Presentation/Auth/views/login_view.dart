@@ -120,7 +120,7 @@ class _LoginViewState extends State<LoginView> {
                   );
                   if (success) {
                     final token = authProvider.token!;
-                    final baseUrl = 'http://10.0.2.2:3000'; // Đổi backend của bạn
+                    final baseUrl = 'http://192.168.10.1:3000'; // Đổi backend của bạn
                     cartProvider.setCartService(
                         CartService(baseUrl: baseUrl, token: token));
                     await cartProvider.fetchCart();

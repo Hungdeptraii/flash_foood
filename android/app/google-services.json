@@ -1,42 +1,49 @@
 {
   "project_info": {
-    "project_number": "515684465786",
-    "project_id": "flash-food-4917c",
-    "storage_bucket": "flash-food-4917c.firebasestorage.app"
+    "project_number": "133521766736",
+    "project_id": "flashfood-1f252",
+    "storage_bucket": "flashfood-1f252.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:515684465786:android:96bbf192ce6a1276cc0fc3",
+        "mobilesdk_app_id": "1:133521766736:android:51dc76ff14c3aa6aff5455",
         "android_client_info": {
           "package_name": "com.example.flash_food"
         }
       },
       "oauth_client": [
         {
-          "client_id": "515684465786-rrb2peqd1a5afis8vso3mqm06hsft15o.apps.googleusercontent.com",
+          "client_id": "133521766736-fdqi0jtdrd9b82o5fbsvdtmnjjed8q4v.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.flash_food",
-            "certificate_hash": "cfef4fd850583986503ceaeee7ca38c77696d45d"
+            "certificate_hash": "09006715306e07a6ee4cd804e6c7f5697478e35c"
           }
         },
         {
-          "client_id": "515684465786-89i3lijv6fduo1kql5034o3r1ciqfvao.apps.googleusercontent.com",
+          "client_id": "133521766736-6aq24fmhtkn2em3nq7pddano5srfgqss.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBpilZNhdSa5-3Ng0Zvx4djwJKRefFYf08"
+          "current_key": "AIzaSyCmXh4mEVNgWqXNcNeoLCLIkoLsorIdrPc"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "515684465786-89i3lijv6fduo1kql5034o3r1ciqfvao.apps.googleusercontent.com",
+              "client_id": "133521766736-6aq24fmhtkn2em3nq7pddano5srfgqss.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "133521766736-i455532osl347qpf8d4qe46q7650gnim.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.bernadin.dev.flashFood"
+              }
             }
           ]
         }

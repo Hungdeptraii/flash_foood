@@ -5,7 +5,7 @@ class AuthService {
   static Future<Map<String, dynamic>?> login(String email, String password) async {
     print('LOGIN: email=$email, password=$password');
     final response = await http.post(
-      Uri.parse('http://10.0.2.2:3000/api/auth/login'),
+      Uri.parse('http://192.168.10.1:3000/api/auth/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
@@ -22,7 +22,7 @@ class AuthService {
   static Future<Map<String, dynamic>?> register(String email, String username, String password, String phone) async {
     print('REGISTER: email=$email, username=$username, password=$password, phone=$phone');
     final response = await http.post(
-      Uri.parse('http://10.0.2.2:3000/api/auth/register'),
+      Uri.parse('http://192.168.10.1:3000/api/auth/register'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'username': username, 'password': password, 'phone': phone}),
     );
@@ -38,7 +38,7 @@ class AuthService {
 
   static Future<Map<String, dynamic>?> getProfile(String token) async {
     final response = await http.get(
-      Uri.parse('http://10.0.2.2:3000/api/auth/me'),
+      Uri.parse('http://192.168.10.1:3000/api/auth/me'),
       headers: {'Authorization': 'Bearer $token'},
     );
     if (response.statusCode == 200) {
@@ -57,7 +57,7 @@ class AuthService {
     String? avatar,
   }) async {
     final response = await http.put(
-      Uri.parse('http://10.0.2.2:3000/api/auth/me'),
+      Uri.parse('http://192.168.10.1:3000/api/auth/me'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',

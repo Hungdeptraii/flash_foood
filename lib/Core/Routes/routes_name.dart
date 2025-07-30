@@ -18,4 +18,5 @@ class RoutesName{
 
   static const String  settings = "settings";
   static const String  extraCard = "extraCard";
+  static const String  chatDemo = "chatDemo";
 }

@@ -7,7 +7,8 @@ const authRoutes = require('./routes/auth');
 const foodsRoutes = require('./routes/foods');
 const cartRoutes = require('./routes/cart');
 const ordersRoutes = require('./routes/orders');
-require('dotenv').config();
+const notificationsRoutes = require('./routes/notifications');
+require('dotenv').config({ path: './env' });
 require('./middleware/passport')
 
 const admin = require('firebase-admin');
@@ -35,6 +36,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/foods', foodsRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', ordersRoutes);
+app.use('/api/notifications', notificationsRoutes);
 app.use('/api/user', require('./routes/user'));
 
 const PORT = process.env.PORT || 3000;

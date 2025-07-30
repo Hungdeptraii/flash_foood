@@ -26,8 +26,8 @@ class _ManageRevenuePageState extends State<ManageRevenuePage> with SingleTicker
   late TabController _tabController;
 
   String get token => Provider.of<AuthProvider>(context, listen: false).token ?? '';
-  final String apiBase = 'http://10.0.2.2:3000/api/orders/revenue';
-  final String apiFood = 'http://10.0.2.2:3000/api/orders/revenue-by-food';
+  final String apiBase = 'http://192.168.10.1:3000/api/orders/revenue';
+  final String apiFood = 'http://192.168.10.1:3000/api/orders/revenue-by-food';
 
   @override
   void initState() {

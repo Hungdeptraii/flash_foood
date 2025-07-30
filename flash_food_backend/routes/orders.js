@@ -1,10 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
-const { authenticateToken, requireAdmin } = require('../middleware/auth');
+const { authenticateToken, requireAdmin, requireStaff } = require('../middleware/auth');
 const axios = require('axios');
 const admin = require('firebase-admin');
 const serviceAccount = require('../firebase-service-account.json');
+const NotificationService = require('../services/notificationService');
+const { sendFCMNotificationToUser } = require('../utils/fcmUtils');
+
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
@@ -45,17 +48,26 @@ router.post('/create', authenticateToken, async (req, res) => {
         [orderId, item.food_id, item.quantity, foods[0].price]
       );
     }
-    // Gửi FCM notification cho user nếu có fcm_token
-    const [[userInfo]] = await db.query('SELECT fcm_token FROM users WHERE id = ?', [userId]);
-    if (userInfo && userInfo.fcm_token) {
-      await admin.messaging().send({
-        token: userInfo.fcm_token,
-        notification: {
-          title: 'Đặt hàng thành công',
-          body: 'Đơn hàng của bạn đã được đặt thành công!'
-        }
-      });
-    }
+    // Gửi FCM notification cho user
+    await sendFCMNotificationToUser(userId, {
+      title: 'Đặt hàng thành công',
+      body: 'Đơn hàng của bạn đã được đặt thành công!'
+    }, {
+      type: 'order_created',
+      orderId: orderId.toString(),
+      userId: userId.toString(),
+      status: 'pending'
+    });
+
+    // Lưu thông báo vào Firebase Database
+    await NotificationService.saveNotification({
+      title: 'Đặt hàng thành công',
+      body: 'Đơn hàng của bạn đã được đặt thành công!',
+      userId: userId,
+      type: 'order_created',
+      orderId: orderId,
+      status: 'pending'
+    });
     res.json({ success: true, order_id: orderId });
   } catch (err) {
     console.log('Order error:', err); // Thêm log debug
@@ -110,25 +122,35 @@ router.get('/', authenticateToken, async (req, res) => {
   }
 });
 
-// Xác nhận đơn hàng (admin)
-router.post('/:id/confirm', authenticateToken, async (req, res) => {
+// Xác nhận đơn hàng (staff)
+router.post('/:id/confirm', authenticateToken, requireStaff, async (req, res) => {
   const orderId = req.params.id;
   try {
     // Cập nhật trạng thái và giờ xác nhận
     await db.query('UPDATE orders SET status = ?, confirmed_at = NOW() WHERE id = ?', ['confirmed', orderId]);
-    // Lấy user_id và fcm_token của đơn hàng
+    // Lấy user_id của đơn hàng
     const [[orderInfo]] = await db.query('SELECT user_id FROM orders WHERE id = ?', [orderId]);
     if (orderInfo) {
-      const [[userInfo]] = await db.query('SELECT fcm_token FROM users WHERE id = ?', [orderInfo.user_id]);
-      if (userInfo && userInfo.fcm_token) {
-        await admin.messaging().send({
-          token: userInfo.fcm_token,
-          notification: {
-            title: 'Đơn hàng đã được xác nhận',
-            body: 'Đơn hàng của bạn đã được xác nhận và đang được xử lý.'
-          }
-        });
-      }
+      // Gửi FCM notification cho user
+      await sendFCMNotificationToUser(orderInfo.user_id, {
+        title: 'Đơn hàng đã được xác nhận',
+        body: 'Đơn hàng của bạn đã được xác nhận và đang được xử lý.'
+      }, {
+        type: 'order_confirmed',
+        orderId: orderId.toString(),
+        userId: orderInfo.user_id.toString(),
+        status: 'confirmed'
+      });
+
+      // Lưu thông báo vào Firebase Database
+      await NotificationService.saveNotification({
+        title: 'Đơn hàng đã được xác nhận',
+        body: 'Đơn hàng của bạn đã được xác nhận và đang được xử lý.',
+        userId: orderInfo.user_id,
+        type: 'order_confirmed',
+        orderId: orderId,
+        status: 'confirmed'
+      });
     }
     res.json({ success: true });
   } catch (err) {
@@ -136,30 +158,71 @@ router.post('/:id/confirm', authenticateToken, async (req, res) => {
   }
 });
 
-// Từ chối/hủy đơn hàng (admin)
-router.post('/:id/cancel', authenticateToken, async (req, res) => {
+// Từ chối/hủy đơn hàng (staff)
+router.post('/:id/cancel', authenticateToken, requireStaff, async (req, res) => {
   const orderId = req.params.id;
   const { reason } = req.body;
   try {
-    // Lấy user_id và fcm_token của đơn hàng
+    // Lấy user_id của đơn hàng
     const [[orderInfo]] = await db.query('SELECT user_id FROM orders WHERE id = ?', [orderId]);
     if (!orderInfo) return res.status(404).json({ error: 'Order not found' });
-    const [[userInfo]] = await db.query('SELECT fcm_token FROM users WHERE id = ?', [orderInfo.user_id]);
     // Hủy đơn hàng
     await db.query('UPDATE orders SET status = ?, cancel_reason = ? WHERE id = ?', ['cancelled', reason, orderId]);
-    // Gửi FCM notification nếu có token
-    if (userInfo && userInfo.fcm_token) {
-      await admin.messaging().send({
-        token: userInfo.fcm_token,
-        notification: {
-          title: 'Đơn hàng bị từ chối',
-          body: reason ? `Lý do: ${reason}` : 'Đơn hàng của bạn đã bị từ chối.'
-        }
-      });
-    }
+    // Gửi FCM notification cho user
+    await sendFCMNotificationToUser(orderInfo.user_id, {
+      title: 'Đơn hàng bị từ chối',
+      body: reason ? `Lý do: ${reason}` : 'Đơn hàng của bạn đã bị từ chối.'
+    }, {
+      type: 'order_cancelled',
+      orderId: orderId.toString(),
+      userId: orderInfo.user_id.toString(),
+      status: 'cancelled',
+      reason: reason || 'Không có lý do'
+    });
+
+    // Lưu thông báo vào Firebase Database
+    await NotificationService.saveNotification({
+      title: 'Đơn hàng bị từ chối',
+      body: reason ? `Lý do: ${reason}` : 'Đơn hàng của bạn đã bị từ chối.',
+      userId: orderInfo.user_id,
+      type: 'order_cancelled',
+      orderId: orderId,
+      status: 'cancelled',
+      reason: reason || 'Không có lý do'
+    });
     res.json({ success: true, message: 'Đơn hàng đã bị admin từ chối.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Endpoint để khách hàng hủy đơn hàng (chuyển sang trạng thái cancelled)
+router.post('/:id/cancel-by-user', authenticateToken, async (req, res) => {
+  const orderId = req.params.id;
+  const userId = req.user.id;
+  
+  try {
+    // Kiểm tra đơn hàng có tồn tại không
+    const [orders] = await db.query('SELECT status, user_id FROM orders WHERE id = ?', [orderId]);
+    if (!orders.length) return res.status(404).json({ message: 'Order not found' });
+    
+    const order = orders[0];
+    const status = order.status;
+    
+    // Chỉ cho phép khách hàng hủy đơn của chính mình khi trạng thái là 'pending'
+    if (order.user_id !== userId) {
+      return res.status(403).json({ message: 'Không có quyền hủy đơn hàng này' });
+    }
+    if (status !== 'pending') {
+      return res.status(400).json({ message: 'Chỉ được hủy đơn hàng khi trạng thái là pending' });
+    }
+    
+    // Cập nhật trạng thái thành cancelled
+    await db.query('UPDATE orders SET status = ?, cancel_reason = ? WHERE id = ?', ['cancelled', 'Khách hàng hủy đơn', orderId]);
+    
+    res.json({ message: 'Đã hủy đơn hàng thành công' });
+  } catch (err) {
+    res.status(500).json({ message: 'Lỗi server', error: err });
   }
 });
 
