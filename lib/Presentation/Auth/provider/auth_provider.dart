@@ -10,9 +10,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 class AuthProvider extends ChangeNotifier {
   String? _token;
   String? _role;
+  String? _userId;
   bool get isLoggedIn => _token != null;
   String? get role => _role;
   String? get token => _token;
+  String? get userId => _userId;
 
   AuthProvider() {
     _loadFromPrefs();
@@ -22,6 +24,7 @@ class AuthProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString('token');
     _role = prefs.getString('role');
+    _userId = prefs.getString('userId');
     notifyListeners();
   }
 
@@ -31,9 +34,11 @@ class AuthProvider extends ChangeNotifier {
       if (result != null && result['token'] != null) {
         _token = result['token'];
         _role = result['role'];
+        _userId = result['userId']?.toString();
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', _token!);
         await prefs.setString('role', _role ?? '');
+        await prefs.setString('userId', _userId ?? '');
         notifyListeners();
         // Gửi FCM token lên backend
         String? fcmToken = await FirebaseMessaging.instance.getToken();
@@ -104,9 +109,11 @@ class AuthProvider extends ChangeNotifier {
         if (data is Map<String, dynamic> && data['token'] != null) {
           _token = data['token'];
           _role = data['role'];
+          _userId = data['userId']?.toString();
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('token', _token!);
           await prefs.setString('role', _role ?? '');
+          await prefs.setString('userId', _userId ?? '');
           notifyListeners();
           debugPrint('Đăng nhập Google + backend thành công');
           return true;
@@ -127,9 +134,11 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     _token = null;
     _role = null;
+    _userId = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
     await prefs.remove('role');
+    await prefs.remove('userId');
     notifyListeners();
   }
 

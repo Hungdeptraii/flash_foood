@@ -93,4 +93,20 @@ class OrderService {
       throw Exception('Failed to fetch orders:  {e}');
     }
   }
+
+  Future<void> deleteOrder(int orderId) async {
+    try {
+      final res = await http.delete(
+        Uri.parse('$baseUrl/api/orders/$orderId'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (res.statusCode != 200) {
+        print('Error deleting order: ${res.statusCode} - ${res.body}');
+        throw Exception('Failed to delete order: ${res.statusCode}');
+      }
+    } catch (e) {
+      print('Exception in deleteOrder: $e');
+      throw Exception('Failed to delete order: $e');
+    }
+  }
 } 

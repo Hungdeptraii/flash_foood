@@ -43,12 +43,103 @@ class NotificationService {
     }
   }
 
+  // Tạo thông báo đặt hàng thành công
+  static async createOrderSuccessNotification({
+    userId,
+    orderId,
+    orderTotal,
+    orderItems = []
+  }) {
+    try {
+      const title = 'Đặt hàng thành công! 🎉';
+      const body = `Đơn hàng #${orderId} của bạn đã được đặt thành công với tổng tiền ${orderTotal} VND. Chúng tôi sẽ xử lý đơn hàng của bạn sớm nhất!`;
+      
+      const notificationData = {
+        title: title,
+        body: body,
+        userId: userId,
+        type: 'order_success',
+        orderId: orderId,
+        status: 'pending',
+        orderTotal: orderTotal,
+        orderItems: orderItems,
+        read: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      const docRef = await db.collection('notifications').add(notificationData);
+      console.log('Order success notification saved with ID:', docRef.id);
+      return docRef.id;
+    } catch (error) {
+      console.error('Error creating order success notification:', error);
+      throw error;
+    }
+  }
+
+  // Tạo thông báo trạng thái đơn hàng
+  static async createOrderStatusNotification({
+    userId,
+    orderId,
+    status,
+    message
+  }) {
+    try {
+      let title = '';
+      let body = '';
+      
+      switch (status) {
+        case 'confirmed':
+          title = 'Đơn hàng đã được xác nhận! ✅';
+          body = `Đơn hàng #${orderId} đã được xác nhận và đang được chuẩn bị.`;
+          break;
+        case 'preparing':
+          title = 'Đơn hàng đang được chuẩn bị! 👨‍🍳';
+          body = `Đơn hàng #${orderId} đang được chuẩn bị. Sẽ sẵn sàng sớm!`;
+          break;
+        case 'ready':
+          title = 'Đơn hàng đã sẵn sàng! 🚚';
+          body = `Đơn hàng #${orderId} đã sẵn sàng và đang được giao đến bạn.`;
+          break;
+        case 'delivered':
+          title = 'Đơn hàng đã được giao! 🎉';
+          body = `Đơn hàng #${orderId} đã được giao thành công. Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!`;
+          break;
+        case 'cancelled':
+          title = 'Đơn hàng đã bị hủy! ❌';
+          body = `Đơn hàng #${orderId} đã bị hủy. ${message || 'Vui lòng liên hệ với chúng tôi nếu có thắc mắc.'}`;
+          break;
+        default:
+          title = 'Cập nhật đơn hàng';
+          body = message || `Đơn hàng #${orderId} có cập nhật mới.`;
+      }
+
+      const notificationData = {
+        title: title,
+        body: body,
+        userId: userId,
+        type: 'order_status',
+        orderId: orderId,
+        status: status,
+        message: message,
+        read: false,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      };
+
+      const docRef = await db.collection('notifications').add(notificationData);
+      console.log('Order status notification saved with ID:', docRef.id);
+      return docRef.id;
+    } catch (error) {
+      console.error('Error creating order status notification:', error);
+      throw error;
+    }
+  }
+
   // Lấy danh sách thông báo của user
   static async getUserNotifications(userId) {
     try {
+      // Chỉ filter theo userId, không orderBy để tránh cần index phức tạp
       const snapshot = await db.collection('notifications')
         .where('userId', '==', userId)
-        .orderBy('createdAt', 'desc')
         .get();
 
       const notifications = [];
@@ -57,6 +148,13 @@ class NotificationService {
           id: doc.id,
           ...doc.data()
         });
+      });
+
+      // Sort trong JavaScript thay vì trong query
+      notifications.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt.toDate()) : new Date(0);
+        const dateB = b.createdAt ? new Date(b.createdAt.toDate()) : new Date(0);
+        return dateB - dateA; // Descending order
       });
 
       return notifications;

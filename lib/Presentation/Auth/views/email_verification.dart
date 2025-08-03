@@ -24,7 +24,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
     try {
       final response = await http.get(
-        Uri.parse('http://localhost:3000/auth/check-verified?email=${Uri.encodeComponent(widget.email)}'),
+        Uri.parse('http://192.168.10.1:3000/auth/check-verified?email=${Uri.encodeComponent(widget.email)}'),
       );
 
       final data = jsonDecode(response.body);
@@ -60,7 +60,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://localhost:3000/auth/resend-verification'),
+        Uri.parse('http://192.168.10.1:3000/auth/resend-verification'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': widget.email,

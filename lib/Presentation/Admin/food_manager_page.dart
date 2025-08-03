@@ -83,8 +83,26 @@ class _FoodManagerPageState extends State<FoodManagerPage> with SingleTickerProv
                     child: ClipOval(
                       child: selectedImages.isNotEmpty
                         ? (selectedImages[0].startsWith('http')
-                            ? Image.network(selectedImages[0], fit: BoxFit.cover, width: 96, height: 96)
-                            : Image.file(File(selectedImages[0]), fit: BoxFit.cover, width: 96, height: 96))
+                            ? Image.network(
+                                selectedImages[0], 
+                                fit: BoxFit.cover, 
+                                width: 96, 
+                                height: 96,
+                                errorBuilder: (context, error, stackTrace) {
+                                  print('Error loading image: ${selectedImages[0]} - $error');
+                                  return Image.asset(_getFoodIcon(category.designation), width: 64, height: 64, fit: BoxFit.contain);
+                                },
+                              )
+                            : Image.file(
+                                File(selectedImages[0]), 
+                                fit: BoxFit.cover, 
+                                width: 96, 
+                                height: 96,
+                                errorBuilder: (context, error, stackTrace) {
+                                  print('Error loading file image: ${selectedImages[0]} - $error');
+                                  return Image.asset(_getFoodIcon(category.designation), width: 64, height: 64, fit: BoxFit.contain);
+                                },
+                              ))
                         : Image.asset(_getFoodIcon(category.designation), width: 64, height: 64, fit: BoxFit.contain),
                     ),
                   ),

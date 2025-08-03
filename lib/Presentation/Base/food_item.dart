@@ -174,10 +174,23 @@ Widget _buildFoodImage(String path, String category) {
       width: double.infinity,
       height: double.infinity,
       fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => Image.asset(
-        _getFoodIcon(category),
-        fit: BoxFit.contain,
-      ),
+      errorBuilder: (context, error, stackTrace) {
+        print('Error loading image: $path - $error');
+        return Image.asset(
+          _getFoodIcon(category),
+          fit: BoxFit.contain,
+        );
+      },
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Center(
+          child: CircularProgressIndicator(
+            value: loadingProgress.expectedTotalBytes != null
+                ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                : null,
+          ),
+        );
+      },
     );
   } else if (path.startsWith('assets/')) {
     imageWidget = Image.asset(

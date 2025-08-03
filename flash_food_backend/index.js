@@ -8,6 +8,8 @@ const foodsRoutes = require('./routes/foods');
 const cartRoutes = require('./routes/cart');
 const ordersRoutes = require('./routes/orders');
 const notificationsRoutes = require('./routes/notifications');
+const chatRoutes = require('./routes/chat');
+const aiRoutes = require('./routes/ai');
 require('dotenv').config({ path: './env' });
 require('./middleware/passport')
 
@@ -37,7 +39,9 @@ app.use('/api/foods', foodsRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', ordersRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/chat', chatRoutes);
 app.use('/api/user', require('./routes/user'));
+app.use('/api/ai', aiRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

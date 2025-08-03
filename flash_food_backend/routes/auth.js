@@ -203,6 +203,7 @@ router.post('/google-login', async (req, res) => {
     res.json({
       message: 'Đăng nhập Google thành công',
       token: backendToken, // Trả về token của backend
+      userId: user.id, // Thêm userId
       role: user.role,
       username: user.username,
       email: user.email

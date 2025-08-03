@@ -1,6 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter/material.dart';
+import '../../Presentation/Notifications/provider/notification_provider.dart';
+import '../../Presentation/Notifications/Models/notification_model.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -72,8 +76,34 @@ class NotificationService {
 
       final DocumentReference docRef = await _firestore.collection('notifications').add(notificationData);
       print('Notification saved to Firebase Database: ${docRef.id}');
+      
+      // Cập nhật provider nếu có
+      _updateNotificationProvider(title, body, type, orderId, status);
     } catch (e) {
       print('Error saving notification to Firebase Database: $e');
+    }
+  }
+
+  // Cập nhật NotificationProvider
+  void _updateNotificationProvider(String title, String body, String type, String? orderId, String? status) {
+    try {
+      // Tìm provider trong context
+      final notification = NotificationModel(
+        notificationTitle: title,
+        notificationContent: body,
+        type: type,
+        orderId: orderId,
+        status: status,
+        isRead: false,
+        createdAt: DateTime.now(),
+      );
+      
+      // Cập nhật provider thông qua global key hoặc callback
+      // Đây là một cách tạm thời, trong thực tế bạn có thể sử dụng
+      // GlobalKey hoặc callback để cập nhật provider
+      print('Notification should be added to provider: $title');
+    } catch (e) {
+      print('Error updating notification provider: $e');
     }
   }
 

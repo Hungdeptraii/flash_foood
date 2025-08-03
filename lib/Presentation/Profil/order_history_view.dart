@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../Base/models/order_model.dart';
+import '../Base/services/order_service.dart';
 import 'package:intl/intl.dart';
 import 'package:flash_food/Core/app_colors.dart';
 import 'package:flash_food/Core/text_styles.dart';
@@ -35,10 +36,40 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
   void initState() {
     super.initState();
     _orders = List.from(widget.orders);
+    
+    // Auto refresh khi mở app để đồng bộ với database
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _refreshOrders();
+    });
   }
 
   List<OrderModel> getOrdersByStatus(String status) {
     return _orders.where((order) => order.status == status).toList();
+  }
+
+  Future<void> _refreshOrders() async {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final token = authProvider.token;
+      if (token == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Vui lòng đăng nhập lại!'), backgroundColor: Colors.red),
+        );
+        return;
+      }
+
+      // Reload dữ liệu từ server
+      final orderService = OrderService(baseUrl: 'http://192.168.10.1:3000', token: token);
+      final newOrders = await orderService.fetchAllOrders();
+      
+      setState(() {
+        _orders = newOrders;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi làm mới dữ liệu: $e'), backgroundColor: Colors.red),
+      );
+    }
   }
 
   @override
@@ -48,6 +79,13 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
       child: Scaffold(
         appBar: AppBar(
           title: Text('Đơn hàng của tôi'),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.refresh),
+              onPressed: _refreshOrders,
+              tooltip: 'Làm mới dữ liệu',
+            ),
+          ],
           bottom: TabBar(
             tabs: [
               Tab(text: 'Chờ xác nhận'),
@@ -71,11 +109,13 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
     if (orders.isEmpty) {
       return Center(child: Text('Không có đơn hàng $emptyText.'));
     }
-    return ListView.builder(
-      itemCount: orders.length,
-      itemBuilder: (context, index) {
-        final order = orders[index];
-        return Card(
+    return RefreshIndicator(
+      onRefresh: _refreshOrders,
+      child: ListView.builder(
+        itemCount: orders.length,
+        itemBuilder: (context, index) {
+          final order = orders[index];
+          return Card(
           margin: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           elevation: 2,
           child: ListTile(
@@ -118,6 +158,7 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
           ),
         );
       },
+      ),
     );
   }
 
@@ -210,7 +251,7 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
                       Text('(${item.price} VND)', style: TextStyles.bodyMediumRegular.copyWith(color: Pallete.neutral60, fontSize: 16)),
                     ],
                   ),
-                )),
+                )).toList(),
                 SizedBox(height: 16),
                 Text('Tổng: ${order.total} VND', style: TextStyles.bodyLargeBold.copyWith(color: Pallete.orangePrimary, fontSize: 20)),
                 SizedBox(height: 12),
@@ -234,8 +275,8 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
                   Text(order.cancelReason!, style: TextStyles.bodyMediumRegular.copyWith(color: Pallete.pureError)),
                 ],
                 SizedBox(height: 20),
-                // Nếu đơn đã xác nhận hoặc đã hủy thì chỉ hiện nút Đóng căn giữa
-                if (order.status == 'confirmed' || order.status == 'cancelled')
+                // Nếu đơn đã xác nhận thì chỉ hiện nút Đóng căn giữa
+                if (order.status == 'confirmed')
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
                     child: SizedBox(
@@ -253,88 +294,152 @@ class _OrderHistoryViewState extends State<OrderHistoryView> {
                       ),
                     ),
                   )
+                // Nếu đơn đã hủy thì hiện nút xóa và đóng
+                else if (order.status == 'cancelled')
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: Icon(Icons.delete_forever, size: 18),
+                            label: Text('Xóa đơn này'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red[700],
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            onPressed: () async {
+                              try {
+                                final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                                final token = authProvider.token;
+                                if (token == null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Vui lòng đăng nhập lại!'), backgroundColor: Colors.red),
+                                  );
+                                  return;
+                                }
+                                
+                                // Xóa đơn hàng đã bị hủy
+                                final orderService = OrderService(baseUrl: 'http://192.168.10.1:3000', token: token);
+                                await orderService.deleteOrder(order.id);
+                                
+                                Navigator.pop(context); // Đóng dialog
+                                setState(() {
+                                  // Xóa đơn hàng khỏi danh sách
+                                  _orders.removeWhere((o) => o.id == order.id);
+                                });
+                                widget.onOrderDeleted?.call();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Đã xóa đơn hàng!')),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Lỗi khi xóa đơn hàng: $e'), backgroundColor: Colors.red),
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            icon: Icon(Icons.close, size: 18, color: Colors.white),
+                            label: Text('Đóng'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Pallete.orangePrimary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              padding: EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
                 else if (order.status == 'pending')
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
-                                                 child: ElevatedButton.icon(
-                           icon: Icon(Icons.delete, size: 18),
-                           label: Text('Hủy đơn này'),
+                        child: ElevatedButton.icon(
+                          icon: Icon(Icons.delete, size: 18),
+                          label: Text('Hủy đơn này'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Pallete.pureError,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             padding: EdgeInsets.symmetric(horizontal: 0, vertical: 12),
                           ),
-                                                     onPressed: () async {
-                             try {
-                               final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                               final token = authProvider.token;
-                               if (token == null) {
-                                 ScaffoldMessenger.of(context).showSnackBar(
-                                   SnackBar(content: Text('Vui lòng đăng nhập lại!'), backgroundColor: Colors.red),
-                                 );
-                                 return;
-                               }
-                               
-                               // Chỉ hủy đơn hàng pending
-                               final res = await http.post(
-                                 Uri.parse('http://192.168.10.1:3000/api/orders/${order.id}/cancel-by-user'),
-                                 headers: {'Authorization': 'Bearer $token'},
-                               );
-                               
-                               if (res.statusCode == 200) {
-                                 Navigator.pop(context); // Đóng dialog
-                                 setState(() {
-                                   // Cập nhật trạng thái đơn hàng thành cancelled
-                                   final orderIndex = _orders.indexWhere((o) => o.id == order.id);
-                                   if (orderIndex != -1) {
-                                     _orders[orderIndex] = _orders[orderIndex].copyWith(
-                                       status: 'cancelled',
-                                       cancelReason: 'Khách hàng hủy đơn',
-                                     );
-                                   }
-                                 });
-                                 widget.onOrderDeleted?.call();
-                                 ScaffoldMessenger.of(context).showSnackBar(
-                                   SnackBar(content: Text('Đã hủy đơn hàng!')),
-                                 );
-                               } else if (res.statusCode == 401) {
-                                 ScaffoldMessenger.of(context).showSnackBar(
-                                   SnackBar(content: Text('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!'), backgroundColor: Colors.red),
-                                 );
-                               } else if (res.statusCode == 403) {
-                                 ScaffoldMessenger.of(context).showSnackBar(
-                                   SnackBar(content: Text('Không có quyền hủy đơn hàng này!'), backgroundColor: Colors.red),
-                                 );
-                               } else if (res.statusCode == 400) {
-                                 final errorData = jsonDecode(res.body);
-                                 ScaffoldMessenger.of(context).showSnackBar(
-                                   SnackBar(content: Text(errorData['message'] ?? 'Chỉ hủy được đơn pending!'), backgroundColor: Colors.red),
-                                 );
-                               } else if (res.statusCode == 404) {
-                                 ScaffoldMessenger.of(context).showSnackBar(
-                                   SnackBar(content: Text('Đơn hàng không tồn tại!'), backgroundColor: Colors.red),
-                                 );
-                                 widget.onOrderDeleted?.call();
-                               } else {
-                                 try {
-                                   final errorData = jsonDecode(res.body);
-                                   ScaffoldMessenger.of(context).showSnackBar(
-                                     SnackBar(content: Text('Lỗi khi hủy đơn hàng: ${errorData['message'] ?? res.body}'), backgroundColor: Colors.red),
-                                   );
-                                 } catch (e) {
-                                   ScaffoldMessenger.of(context).showSnackBar(
-                                     SnackBar(content: Text('Lỗi khi hủy đơn hàng: ${res.body}'), backgroundColor: Colors.red),
-                                   );
-                                 }
-                               }
-                             } catch (e) {
-                               ScaffoldMessenger.of(context).showSnackBar(
-                                 SnackBar(content: Text('Lỗi kết nối: $e'), backgroundColor: Colors.red),
-                               );
-                             }
-                           },
+                          onPressed: () async {
+                            try {
+                              final authProvider = Provider.of<AuthProvider>(context, listen: false);
+                              final token = authProvider.token;
+                              if (token == null) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Vui lòng đăng nhập lại!'), backgroundColor: Colors.red),
+                                );
+                                return;
+                              }
+                              
+                              // Chỉ hủy đơn hàng pending
+                              final res = await http.post(
+                                Uri.parse('http://192.168.10.1:3000/api/orders/${order.id}/cancel-by-user'),
+                                headers: {'Authorization': 'Bearer $token'},
+                              );
+                              
+                              if (res.statusCode == 200) {
+                                Navigator.pop(context); // Đóng dialog
+                                setState(() {
+                                  // Cập nhật trạng thái đơn hàng thành cancelled
+                                  final orderIndex = _orders.indexWhere((o) => o.id == order.id);
+                                  if (orderIndex != -1) {
+                                    _orders[orderIndex] = _orders[orderIndex].copyWith(
+                                      status: 'cancelled',
+                                      cancelReason: 'Khách hàng hủy đơn',
+                                    );
+                                  }
+                                });
+                                widget.onOrderDeleted?.call();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Đã hủy đơn hàng!')),
+                                );
+                              } else if (res.statusCode == 401) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!'), backgroundColor: Colors.red),
+                                );
+                              } else if (res.statusCode == 403) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Không có quyền hủy đơn hàng này!'), backgroundColor: Colors.red),
+                                );
+                              } else if (res.statusCode == 400) {
+                                final errorData = jsonDecode(res.body);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(errorData['message'] ?? 'Chỉ hủy được đơn pending!'), backgroundColor: Colors.red),
+                                );
+                              } else if (res.statusCode == 404) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Đơn hàng không tồn tại!'), backgroundColor: Colors.red),
+                                );
+                                widget.onOrderDeleted?.call();
+                              } else {
+                                try {
+                                  final errorData = jsonDecode(res.body);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Lỗi khi hủy đơn hàng: ${errorData['message'] ?? res.body}'), backgroundColor: Colors.red),
+                                  );
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Lỗi khi hủy đơn hàng: ${res.body}'), backgroundColor: Colors.red),
+                                  );
+                                }
+                              }
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Lỗi kết nối: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          },
                         ),
                       ),
                       SizedBox(width: 24),

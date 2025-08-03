@@ -306,10 +306,50 @@ class _AboutMenuViewState extends State<AboutMenuView> {
       );
     }
     if (imagePath.startsWith('http')) {
-      return Image.network(imagePath, height: height, width: double.infinity, fit: BoxFit.cover);
+      return Image.network(
+        imagePath, 
+        height: height, 
+        width: double.infinity, 
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          print('Error loading image: $imagePath - $error');
+          return Container(
+            color: Colors.black12,
+            height: height,
+            child: Center(child: Text('Error loading image', style: TextStyle(color: Colors.white))),
+          );
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Container(
+            color: Colors.black12,
+            height: height,
+            child: Center(
+              child: CircularProgressIndicator(
+                value: loadingProgress.expectedTotalBytes != null
+                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                    : null,
+              ),
+            ),
+          );
+        },
+      );
     }
     if (imagePath.startsWith('/')) {
-      return Image.file(File(imagePath), height: height, width: double.infinity, fit: BoxFit.cover);
+      return Image.file(
+        File(imagePath), 
+        height: height, 
+        width: double.infinity, 
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          print('Error loading file image: $imagePath - $error');
+          return Container(
+            color: Colors.black12,
+            height: height,
+            child: Center(child: Text('Error loading image', style: TextStyle(color: Colors.white))),
+          );
+        },
+      );
     }
     return Container(
       color: Colors.black12,

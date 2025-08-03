@@ -66,4 +66,27 @@ router.put('/:id', async (req, res) => {
   }
 });
 
+// Lấy danh sách danh mục món ăn (category)
+router.get('/categories', async (req, res) => {
+  try {
+    const [categories] = await pool.query('SELECT DISTINCT category FROM foods');
+    res.json(categories.map(c => c.category));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
+// Lấy món ăn theo danh mục
+router.get('/by-category/:category', async (req, res) => {
+  try {
+    const { category } = req.params;
+    const [foods] = await pool.query('SELECT * FROM foods WHERE category = ?', [category]);
+    res.json(foods);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+});
+
 module.exports = router; 

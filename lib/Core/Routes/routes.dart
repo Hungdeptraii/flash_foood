@@ -4,8 +4,6 @@ import 'package:flash_food/Presentation/Auth/views/login_view.dart';
 import 'package:flash_food/Presentation/Auth/views/otp_verification_view.dart';
 import 'package:flash_food/Presentation/Auth/views/reset_password_view.dart';
 import 'package:flash_food/Presentation/Auth/views/signup_view.dart';
-import 'package:flash_food/Presentation/Chat/call_view.dart';
-import 'package:flash_food/Presentation/Chat/discussion_view.dart';
 import 'package:flash_food/Presentation/Foods/Views/about_menu_view.dart';
 import 'package:flash_food/Presentation/Foods/Views/payment_view.dart';
 import 'package:flash_food/Presentation/Foods/Views/search_view.dart';
@@ -15,7 +13,6 @@ import 'package:flash_food/Presentation/Notifications/Views/notification_view.da
 import 'package:flash_food/Presentation/Profil/extracard_view.dart';
 import 'package:flash_food/Presentation/Profil/personal_data_view.dart';
 import 'package:flash_food/Presentation/Profil/settings_view.dart';
-import 'package:flash_food/Presentation/Base/chat_demo.dart';
 import 'package:flutter/material.dart';
 import 'package:flash_food/Presentation/Base/models/food_model.dart';
 
@@ -48,10 +45,6 @@ class Routes{
         final cartItems = args?['cartItems'];
         final total = args?['total'];
         return MaterialPageRoute(builder: (context) => PaymentView(cartItems: cartItems, total: total));
-      case RoutesName.discussion:
-        return MaterialPageRoute(builder: (context) => const DiscussionView());
-      case RoutesName.call:
-        return MaterialPageRoute(builder: (context) => const CallView());
       case RoutesName.search:
         return MaterialPageRoute(builder: (context) => const SearchView());
       case RoutesName.personnalData:
@@ -60,8 +53,6 @@ class Routes{
         return MaterialPageRoute(builder: (context) => const SettingsView());
       case RoutesName.extraCard:
         return MaterialPageRoute(builder: (context) => const ExtraCardView());
-      case RoutesName.chatDemo:
-        return MaterialPageRoute(builder: (context) => const ChatDemo());
       default:
         return MaterialPageRoute(builder: (context) => const Scaffold(
           body: Text("No routes found"),
